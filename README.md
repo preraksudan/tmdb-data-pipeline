@@ -41,3 +41,5 @@ com.amazonaws:aws-java-sdk-bundle:1.12.262 \
   --conf spark.hadoop.fs.s3a.secret.key=minioadmin \
   --conf spark.hadoop.fs.s3a.path.style.access=true \
   /opt/spark-apps/jobs/transform_tmdb.py
+
+Testing readme
