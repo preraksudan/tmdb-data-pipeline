@@ -215,9 +215,11 @@ Analytics Record Format
 |955     |Mission: Impossible II              |546388105|
 |954     |Mission: Impossible                 |457696359|
 +--------+------------------------------------+---------+
+```
 only showing top 5 rows
 
 Top 10 highest-grossing movies:
+```sh
 +--------+--------------------------+----------+
 |movie_id|title                     |revenue   |
 +--------+--------------------------+----------+
@@ -232,8 +234,11 @@ Top 10 highest-grossing movies:
 |211672  |Minions                   |1156730962|
 |271110  |Captain America: Civil War|1153304495|
 +--------+--------------------------+----------+
+```
 
 Most popular genres:
+
+```sh
 +---------------+-----------+
 |genre_name     |movie_count|
 +---------------+-----------+
@@ -248,9 +253,12 @@ Most popular genres:
 |Horror         |519        |
 |Family         |513        |
 +---------------+-----------+
+```
+
 only showing top 10 rows
 
 Top directors by total revenue:
+```sh
 +-----------------+-------------+-----------+
 |person_name      |total_revenue|movie_count|
 +-----------------+-------------+-----------+
@@ -265,9 +273,11 @@ Top directors by total revenue:
 |Tim Burton       |3337418241   |14         |
 |Ridley Scott     |3189557997   |16         |
 +-----------------+-------------+-----------+
+```
 only showing top 10 rows
 
 Average rating per genre:
+```sh
 +-----------+------------------+
 |genre_name |avg_rating        |
 +-----------+------------------+
@@ -283,5 +293,5 @@ Average rating per genre:
 |Mystery    |6.183908045977014 |
 +-----------+------------------+
 only showing top 10 rows
-
+```
 ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY
