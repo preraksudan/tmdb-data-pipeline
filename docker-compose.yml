@@ -39,7 +39,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./spark:/opt/spark-apps
     ports:
-      - "8080:8080"
+      - "8081:8080"
     # Recommended user setting for volume permissions
     user: "${AIRFLOW_UID:-50000}:0"
     # Install amazon providers within the container start-up script

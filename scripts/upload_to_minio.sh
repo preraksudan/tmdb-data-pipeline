@@ -9,3 +9,4 @@ mc cp data/raw/tmdb_5000_credits.csv local/tmdb-raw/
 
 mc ls local/tmdb-raw
 mc mb local/tmdb-curated
+mc mb local/tmdb-analytics
