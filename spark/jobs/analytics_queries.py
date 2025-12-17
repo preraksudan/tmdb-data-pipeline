@@ -36,7 +36,7 @@ tom_cruise_movies = cast \
     ) \
     .orderBy(col("revenue").desc())
 
-print("🎬 Highest-grossing movies starring Tom Cruise:")
+print("Highest-grossing movies starring Tom Cruise:")
 tom_cruise_movies.show(5, truncate=False)
 
 tom_cruise_movies.write.format("delta") \
@@ -51,7 +51,7 @@ top_revenue_movies = movies \
     .orderBy(col("revenue").desc()) \
     .limit(10)
 
-print("💰 Top 10 highest-grossing movies:")
+print("Top 10 highest-grossing movies:")
 top_revenue_movies.show(truncate=False)
 
 top_revenue_movies.write.format("delta") \
@@ -66,7 +66,7 @@ genre_popularity = genres \
     .agg(count("*").alias("movie_count")) \
     .orderBy(col("movie_count").desc())
 
-print("🎭 Most popular genres:")
+print("Most popular genres:")
 genre_popularity.show(10, truncate=False)
 
 genre_popularity.write.format("delta") \
@@ -86,7 +86,7 @@ top_directors = crew \
     ) \
     .orderBy(col("total_revenue").desc())
 
-print("🎥 Top directors by total revenue:")
+print("Top directors by total revenue:")
 top_directors.show(10, truncate=False)
 
 top_directors.write.format("delta") \
@@ -102,13 +102,13 @@ avg_rating_per_genre = genres \
     .agg(avg("vote_average").alias("avg_rating")) \
     .orderBy(col("avg_rating").desc())
 
-print("⭐ Average rating per genre:")
+print("Average rating per genre:")
 avg_rating_per_genre.show(10, truncate=False)
 
 avg_rating_per_genre.write.format("delta") \
     .mode("overwrite") \
     .save(ANALYTICS + "avg_rating_per_genre")
 
-print("✅ ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY")
+print("ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY")
 
 spark.stop()
