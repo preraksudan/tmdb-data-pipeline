@@ -300,20 +300,33 @@ ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY
 
 Airflow standalone (local setup)
 
-docker exec -it airflow bash
-airflow users list
+```sh
+  docker ps
+  docker logs airflow
+  docker logs spark
+```
 
 
-airflow users create \
-    --username admin \
-    --password admin \
-    --firstname Admin \
-    --lastname User \
-    --role Admin \
-    --email admin@example.com
+## settign up account on airflow.
+```sh
+  docker exec -it airflow bash
+  airflow users list
+
+  airflow users create \
+      --username admin \
+      --password admin \
+      --firstname Admin \
+      --lastname User \
+      --role Admin \
+      --email admin@example.com
+```
 
 ```sh
 id | username | email             | first_name | last_name | roles
 ===+==========+===================+============+===========+======
 1  | admin    | admin@example.com | Admin      | User      | Admin
 ```
+
+docker exec -it airflow bash
+docker restart airflow
+docker logs -f airflow
