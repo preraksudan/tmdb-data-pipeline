@@ -1,0 +1,404 @@
+~/Documents/data_engineering/tmdb-data-pipeline » docker compose down
+WARN[0000] /Users/preraksudan/Documents/data_engineering/tmdb-data-pipeline/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Running 5/5
+ ✔ Container airflow                   Removed                                                                                                                        0.4s 
+ ✔ Container airflow-postgres          Removed                                                                                                                        0.2s 
+ ✔ Container spark                     Removed                                                                                                                        1.1s 
+ ✔ Container minio                     Removed                                                                                                                        0.2s 
+ ✔ Network tmdb-data-pipeline_default  Removed                                                                                                                        0.2s 
+~/Documents/data_engineering/tmdb-data-pipeline » docker compose up -d
+WARN[0000] /Users/preraksudan/Documents/data_engineering/tmdb-data-pipeline/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Running 5/5
+ ✔ Network tmdb-data-pipeline_default  Created                                                                                                                        0.0s 
+ ✔ Container minio                     Started                                                                                                                        0.3s 
+ ✔ Container airflow-postgres          Healthy                                                                                                                        5.5s 
+ ✔ Container spark                     Started                                                                                                                        0.4s 
+ ✔ Container airflow                   Started                                                                                                                        5.5s 
+~/Documents/data_engineering/tmdb-data-pipeline » docker exec -it airflow bash
+
+airflow@45c195a85dfd:/opt/airflow$ airflow users list
+id | username | email             | first_name | last_name | roles
+===+==========+===================+============+===========+======
+1  | admin    | admin@example.com | Admin      | User      | Admin
+                                                                  
+airflow@45c195a85dfd:/opt/airflow$ exit
+exit
+~/Documents/data_engineering/tmdb-data-pipeline » ./scripts/upload_to_minio.sh
+
+Added `local` successfully.
+Bucket created successfully `local/tmdb-raw`.
+.../raw/tmdb_5000_credits.csv: 38.19 MiB / 38.19 MiB  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  97.22 MiB/s 0s[2025-12-17 08:11:33 IST]  38MiB STANDARD tmdb_5000_credits.csv
+[2025-12-17 08:11:32 IST] 5.4MiB STANDARD tmdb_5000_movies.csv
+Bucket created successfully `local/tmdb-curated`.
+Bucket created successfully `local/tmdb-analytics`.
+~/Documents/data_engineering/tmdb-data-pipeline » docker exec -it spark bash
+spark@6e2c781cf53a:/opt/spark/work-dir$ /opt/spark/bin/spark-submit \
+  --master local[*] \
+  --conf spark.jars.ivy=/opt/spark/ivy \
+  --packages \
+io.delta:delta-spark_2.12:3.1.0,\
+org.apache.hadoop:hadoop-aws:3.3.4,\
+com.amazonaws:aws-java-sdk-bundle:1.12.262 \
+  --conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
+  --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
+  --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000 \
+  --conf spark.hadoop.fs.s3a.access.key=minioadmin \
+  --conf spark.hadoop.fs.s3a.secret.key=minioadmin \
+  --conf spark.hadoop.fs.s3a.path.style.access=true \
+  /opt/spark-apps/jobs/transform_tmdb.py
+:: loading settings :: url = jar:file:/opt/spark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /opt/spark/ivy/cache
+The jars for the packages stored in: /opt/spark/ivy/jars
+io.delta#delta-spark_2.12 added as a dependency
+org.apache.hadoop#hadoop-aws added as a dependency
+com.amazonaws#aws-java-sdk-bundle added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-6540da61-37af-480d-b387-e1af13290735;1.0
+        confs: [default]
+        found io.delta#delta-spark_2.12;3.1.0 in central
+        found io.delta#delta-storage;3.1.0 in central
+        found org.antlr#antlr4-runtime;4.9.3 in central
+        found org.apache.hadoop#hadoop-aws;3.3.4 in central
+        found com.amazonaws#aws-java-sdk-bundle;1.12.262 in central
+        found org.wildfly.openssl#wildfly-openssl;1.0.7.Final in central
+downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.1.0/delta-spark_2.12-3.1.0.jar ...
+        [SUCCESSFUL ] io.delta#delta-spark_2.12;3.1.0!delta-spark_2.12.jar (1382ms)
+downloading https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar ...
+        [SUCCESSFUL ] org.apache.hadoop#hadoop-aws;3.3.4!hadoop-aws.jar (319ms)
+downloading https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar ...
+        [SUCCESSFUL ] com.amazonaws#aws-java-sdk-bundle;1.12.262!aws-java-sdk-bundle.jar (72382ms)
+downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.1.0/delta-storage-3.1.0.jar ...
+        [SUCCESSFUL ] io.delta#delta-storage;3.1.0!delta-storage.jar (77ms)
+downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
+        [SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (145ms)
+downloading https://repo1.maven.org/maven2/org/wildfly/openssl/wildfly-openssl/1.0.7.Final/wildfly-openssl-1.0.7.Final.jar ...
+        [SUCCESSFUL ] org.wildfly.openssl#wildfly-openssl;1.0.7.Final!wildfly-openssl.jar (152ms)
+:: resolution report :: resolve 8834ms :: artifacts dl 74470ms
+        :: modules in use:
+        com.amazonaws#aws-java-sdk-bundle;1.12.262 from central in [default]
+        io.delta#delta-spark_2.12;3.1.0 from central in [default]
+        io.delta#delta-storage;3.1.0 from central in [default]
+        org.antlr#antlr4-runtime;4.9.3 from central in [default]
+        org.apache.hadoop#hadoop-aws;3.3.4 from central in [default]
+        org.wildfly.openssl#wildfly-openssl;1.0.7.Final from central in [default]
+        ---------------------------------------------------------------------
+        |                  |            modules            ||   artifacts   |
+        |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+        ---------------------------------------------------------------------
+        |      default     |   6   |   6   |   6   |   0   ||   6   |   6   |
+        ---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-6540da61-37af-480d-b387-e1af13290735
+        confs: [default]
+        6 artifacts copied, 0 already retrieved (281149kB/258ms)
+25/12/17 02:43:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+25/12/17 02:43:37 INFO SparkContext: Running Spark version 3.5.1
+25/12/17 02:43:37 INFO SparkContext: OS info Linux, 6.12.54-linuxkit, aarch64
+25/12/17 02:43:37 INFO SparkContext: Java version 17.0.10
+25/12/17 02:43:37 INFO ResourceUtils: ==============================================================
+25/12/17 02:43:37 INFO ResourceUtils: No custom resources configured for spark.driver.
+25/12/17 02:43:37 INFO ResourceUtils: ==============================================================
+25/12/17 02:43:37 INFO SparkContext: Submitted application: TMDB Movies + Credits Curated
+25/12/17 02:43:37 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+25/12/17 02:43:37 INFO ResourceProfile: Limiting resource is cpu
+25/12/17 02:43:37 INFO ResourceProfileManager: Added ResourceProfile id: 0
+25/12/17 02:43:37 INFO SecurityManager: Changing view acls to: spark
+25/12/17 02:43:37 INFO SecurityManager: Changing modify acls to: spark
+25/12/17 02:43:37 INFO SecurityManager: Changing view acls groups to: 
+25/12/17 02:43:37 INFO SecurityManager: Changing modify acls groups to: 
+25/12/17 02:43:37 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+25/12/17 02:43:37 INFO Utils: Successfully started service 'sparkDriver' on port 34067.
+25/12/17 02:43:37 INFO SparkEnv: Registering MapOutputTracker
+25/12/17 02:43:37 INFO SparkEnv: Registering BlockManagerMaster
+25/12/17 02:43:37 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+25/12/17 02:43:37 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+25/12/17 02:43:37 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+25/12/17 02:43:37 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-9f7de23d-b86b-4618-821e-7c2bd82527af
+25/12/17 02:43:37 INFO MemoryStore: MemoryStore started with capacity 434.4 MiB
+25/12/17 02:43:37 INFO SparkEnv: Registering OutputCommitCoordinator
+25/12/17 02:43:38 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+25/12/17 02:43:38 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar at spark://6e2c781cf53a:34067/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar at spark://6e2c781cf53a:34067/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar at spark://6e2c781cf53a:34067/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar at spark://6e2c781cf53a:34067/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar at spark://6e2c781cf53a:34067/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar at spark://6e2c781cf53a:34067/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar at file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar at file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar at file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar at file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar at file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:43:38 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar at file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Copying /opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:43:38 INFO Executor: Starting executor ID driver on host 6e2c781cf53a
+25/12/17 02:43:38 INFO Executor: OS info Linux, 6.12.54-linuxkit, aarch64
+25/12/17 02:43:38 INFO Executor: Java version 17.0.10
+25/12/17 02:43:38 INFO Executor: Starting executor with user classpath (userClassPathFirst = false): ''
+25/12/17 02:43:38 INFO Executor: Created or updated repl class loader org.apache.spark.util.MutableURLClassLoader@101200f for default.
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:43:38 INFO Executor: Fetching file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: /opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:43:38 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO TransportClientFactory: Successfully created connection to 6e2c781cf53a/172.18.0.4:34067 after 14 ms (0 ms spent in bootstraps)
+25/12/17 02:43:38 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp8943288501443820715.tmp
+25/12/17 02:43:38 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp8943288501443820715.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:43:38 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.apache.hadoop_hadoop-aws-3.3.4.jar to class loader default
+25/12/17 02:43:38 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/org.antlr_antlr4-runtime-4.9.3.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp17476863590886499109.tmp
+25/12/17 02:43:38 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp17476863590886499109.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:43:38 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.antlr_antlr4-runtime-4.9.3.jar to class loader default
+25/12/17 02:43:38 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp9878720378708885290.tmp
+25/12/17 02:43:38 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp9878720378708885290.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:43:38 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to class loader default
+25/12/17 02:43:38 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/io.delta_delta-spark_2.12-3.1.0.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp14638353874122607275.tmp
+25/12/17 02:43:38 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp14638353874122607275.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:43:38 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-spark_2.12-3.1.0.jar to class loader default
+25/12/17 02:43:38 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939417660
+25/12/17 02:43:38 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp17974517156385917841.tmp
+25/12/17 02:43:39 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp17974517156385917841.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:43:39 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to class loader default
+25/12/17 02:43:39 INFO Executor: Fetching spark://6e2c781cf53a:34067/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939417660
+25/12/17 02:43:39 INFO Utils: Fetching spark://6e2c781cf53a:34067/jars/io.delta_delta-storage-3.1.0.jar to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp13957259464434624254.tmp
+25/12/17 02:43:39 INFO Utils: /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/fetchFileTemp13957259464434624254.tmp has been previously copied to /tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:43:39 INFO Executor: Adding file:/tmp/spark-23c6ab04-a6ea-48f8-a179-53dfde9d1efc/userFiles-89d66d00-9a85-4023-a849-4119c11e8c89/io.delta_delta-storage-3.1.0.jar to class loader default
+25/12/17 02:43:39 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 34647.
+25/12/17 02:43:39 INFO NettyBlockTransferService: Server created on 6e2c781cf53a:34647
+25/12/17 02:43:39 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+25/12/17 02:43:39 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 6e2c781cf53a, 34647, None)
+25/12/17 02:43:39 INFO BlockManagerMasterEndpoint: Registering block manager 6e2c781cf53a:34647 with 434.4 MiB RAM, BlockManagerId(driver, 6e2c781cf53a, 34647, None)
+25/12/17 02:43:39 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 6e2c781cf53a, 34647, None)
+25/12/17 02:43:39 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 6e2c781cf53a, 34647, None)
+25/12/17 02:43:40 WARN MetricsConfig: Cannot locate configuration: tried hadoop-metrics2-s3a-file-system.properties,hadoop-metrics2.properties
+✅ Raw movies & credits loaded
+25/12/17 02:43:47 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+✅ MOVIES TABLES WRITTEN
+25/12/17 02:44:00 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 95.00% for 8 writers
+25/12/17 02:44:02 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 95.00% for 8 writers
+✅ CREDITS TABLES WRITTEN
+🎉 TMDB CURATED LAYER COMPLETED SUCCESSFULLY
+spark@6e2c781cf53a:/opt/spark/work-dir$ /opt/spark/bin/spark-submit   --master local[*]   --conf spark.jars.ivy=/opt/spark/ivy   --packages io.delta:delta-spark_2.12:3.1.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262   --conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension   --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog   --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000   --conf spark.hadoop.fs.s3a.access.key=minioadmin   --conf spark.hadoop.fs.s3a.secret.key=minioadmin   --conf spark.hadoop.fs.s3a.path.style.access=true   /opt/spark-apps/jobs/analytics_queries.py
+:: loading settings :: url = jar:file:/opt/spark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /opt/spark/ivy/cache
+The jars for the packages stored in: /opt/spark/ivy/jars
+io.delta#delta-spark_2.12 added as a dependency
+org.apache.hadoop#hadoop-aws added as a dependency
+com.amazonaws#aws-java-sdk-bundle added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-9db64ecb-0f65-4e2a-aecd-b8757e1b6f15;1.0
+        confs: [default]
+        found io.delta#delta-spark_2.12;3.1.0 in central
+        found io.delta#delta-storage;3.1.0 in central
+        found org.antlr#antlr4-runtime;4.9.3 in central
+        found org.apache.hadoop#hadoop-aws;3.3.4 in central
+        found com.amazonaws#aws-java-sdk-bundle;1.12.262 in central
+        found org.wildfly.openssl#wildfly-openssl;1.0.7.Final in central
+:: resolution report :: resolve 199ms :: artifacts dl 8ms
+        :: modules in use:
+        com.amazonaws#aws-java-sdk-bundle;1.12.262 from central in [default]
+        io.delta#delta-spark_2.12;3.1.0 from central in [default]
+        io.delta#delta-storage;3.1.0 from central in [default]
+        org.antlr#antlr4-runtime;4.9.3 from central in [default]
+        org.apache.hadoop#hadoop-aws;3.3.4 from central in [default]
+        org.wildfly.openssl#wildfly-openssl;1.0.7.Final from central in [default]
+        ---------------------------------------------------------------------
+        |                  |            modules            ||   artifacts   |
+        |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+        ---------------------------------------------------------------------
+        |      default     |   6   |   0   |   0   |   0   ||   6   |   0   |
+        ---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-9db64ecb-0f65-4e2a-aecd-b8757e1b6f15
+        confs: [default]
+        0 artifacts copied, 6 already retrieved (0kB/6ms)
+25/12/17 02:44:41 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+25/12/17 02:44:41 INFO SparkContext: Running Spark version 3.5.1
+25/12/17 02:44:41 INFO SparkContext: OS info Linux, 6.12.54-linuxkit, aarch64
+25/12/17 02:44:41 INFO SparkContext: Java version 17.0.10
+25/12/17 02:44:41 INFO ResourceUtils: ==============================================================
+25/12/17 02:44:41 INFO ResourceUtils: No custom resources configured for spark.driver.
+25/12/17 02:44:41 INFO ResourceUtils: ==============================================================
+25/12/17 02:44:41 INFO SparkContext: Submitted application: TMDB Analytics Queries
+25/12/17 02:44:41 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+25/12/17 02:44:41 INFO ResourceProfile: Limiting resource is cpu
+25/12/17 02:44:41 INFO ResourceProfileManager: Added ResourceProfile id: 0
+25/12/17 02:44:41 INFO SecurityManager: Changing view acls to: spark
+25/12/17 02:44:41 INFO SecurityManager: Changing modify acls to: spark
+25/12/17 02:44:41 INFO SecurityManager: Changing view acls groups to: 
+25/12/17 02:44:41 INFO SecurityManager: Changing modify acls groups to: 
+25/12/17 02:44:41 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+25/12/17 02:44:42 INFO Utils: Successfully started service 'sparkDriver' on port 36149.
+25/12/17 02:44:42 INFO SparkEnv: Registering MapOutputTracker
+25/12/17 02:44:42 INFO SparkEnv: Registering BlockManagerMaster
+25/12/17 02:44:42 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+25/12/17 02:44:42 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+25/12/17 02:44:42 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+25/12/17 02:44:42 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-73295250-ec64-44cb-aa9a-bc9fa0220409
+25/12/17 02:44:42 INFO MemoryStore: MemoryStore started with capacity 434.4 MiB
+25/12/17 02:44:42 INFO SparkEnv: Registering OutputCommitCoordinator
+25/12/17 02:44:42 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+25/12/17 02:44:42 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar at spark://6e2c781cf53a:36149/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar at spark://6e2c781cf53a:36149/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar at spark://6e2c781cf53a:36149/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar at spark://6e2c781cf53a:36149/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar at spark://6e2c781cf53a:36149/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added JAR file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar at spark://6e2c781cf53a:36149/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar at file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar at file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar at file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar at file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar at file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:44:42 INFO SparkContext: Added file file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar at file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Copying /opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:44:42 INFO Executor: Starting executor ID driver on host 6e2c781cf53a
+25/12/17 02:44:42 INFO Executor: OS info Linux, 6.12.54-linuxkit, aarch64
+25/12/17 02:44:42 INFO Executor: Java version 17.0.10
+25/12/17 02:44:42 INFO Executor: Starting executor with user classpath (userClassPathFirst = false): ''
+25/12/17 02:44:42 INFO Executor: Created or updated repl class loader org.apache.spark.util.MutableURLClassLoader@75303c83 for default.
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/org.antlr_antlr4-runtime-4.9.3.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/io.delta_delta-storage-3.1.0.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/io.delta_delta-spark_2.12-3.1.0.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:44:42 INFO Executor: Fetching file:///opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: /opt/spark/ivy/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:44:42 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/org.antlr_antlr4-runtime-4.9.3.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO TransportClientFactory: Successfully created connection to 6e2c781cf53a/172.18.0.4:36149 after 18 ms (0 ms spent in bootstraps)
+25/12/17 02:44:42 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/org.antlr_antlr4-runtime-4.9.3.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp15587476020675070722.tmp
+25/12/17 02:44:42 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp15587476020675070722.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.antlr_antlr4-runtime-4.9.3.jar
+25/12/17 02:44:42 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.antlr_antlr4-runtime-4.9.3.jar to class loader default
+25/12/17 02:44:42 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/io.delta_delta-storage-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/io.delta_delta-storage-3.1.0.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp1060757455354938695.tmp
+25/12/17 02:44:42 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp1060757455354938695.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-storage-3.1.0.jar
+25/12/17 02:44:42 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-storage-3.1.0.jar to class loader default
+25/12/17 02:44:42 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp8250468420943789436.tmp
+25/12/17 02:44:42 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp8250468420943789436.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar
+25/12/17 02:44:42 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.wildfly.openssl_wildfly-openssl-1.0.7.Final.jar to class loader default
+25/12/17 02:44:42 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar with timestamp 1765939481782
+25/12/17 02:44:42 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp15569417702303426465.tmp
+25/12/17 02:44:43 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp15569417702303426465.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar
+25/12/17 02:44:43 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/com.amazonaws_aws-java-sdk-bundle-1.12.262.jar to class loader default
+25/12/17 02:44:43 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/io.delta_delta-spark_2.12-3.1.0.jar with timestamp 1765939481782
+25/12/17 02:44:43 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/io.delta_delta-spark_2.12-3.1.0.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp10335825442751220886.tmp
+25/12/17 02:44:43 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp10335825442751220886.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-spark_2.12-3.1.0.jar
+25/12/17 02:44:43 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/io.delta_delta-spark_2.12-3.1.0.jar to class loader default
+25/12/17 02:44:43 INFO Executor: Fetching spark://6e2c781cf53a:36149/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar with timestamp 1765939481782
+25/12/17 02:44:43 INFO Utils: Fetching spark://6e2c781cf53a:36149/jars/org.apache.hadoop_hadoop-aws-3.3.4.jar to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp3060110605660719483.tmp
+25/12/17 02:44:43 INFO Utils: /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/fetchFileTemp3060110605660719483.tmp has been previously copied to /tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.apache.hadoop_hadoop-aws-3.3.4.jar
+25/12/17 02:44:43 INFO Executor: Adding file:/tmp/spark-4411dd07-0f1b-480c-a55d-6745f54a1e83/userFiles-e15870ed-94a0-45e5-bde2-6f5994c2d9be/org.apache.hadoop_hadoop-aws-3.3.4.jar to class loader default
+25/12/17 02:44:43 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 42133.
+25/12/17 02:44:43 INFO NettyBlockTransferService: Server created on 6e2c781cf53a:42133
+25/12/17 02:44:43 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+25/12/17 02:44:43 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 6e2c781cf53a, 42133, None)
+25/12/17 02:44:43 INFO BlockManagerMasterEndpoint: Registering block manager 6e2c781cf53a:42133 with 434.4 MiB RAM, BlockManagerId(driver, 6e2c781cf53a, 42133, None)
+25/12/17 02:44:43 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 6e2c781cf53a, 42133, None)
+25/12/17 02:44:43 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 6e2c781cf53a, 42133, None)
+25/12/17 02:44:44 WARN MetricsConfig: Cannot locate configuration: tried hadoop-metrics2-s3a-file-system.properties,hadoop-metrics2.properties
+Highest-grossing movies starring Tom Cruise:
+25/12/17 02:44:49 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
++--------+------------------------------------+---------+
+|movie_id|title                               |revenue  |
++--------+------------------------------------+---------+
+|56292   |Mission: Impossible - Ghost Protocol|694713380|
+|177677  |Mission: Impossible - Rogue Nation  |682330139|
+|74      |War of the Worlds                   |591739379|
+|955     |Mission: Impossible II              |546388105|
+|954     |Mission: Impossible                 |457696359|
++--------+------------------------------------+---------+
+only showing top 5 rows
+
+Top 10 highest-grossing movies:
++--------+--------------------------+----------+
+|movie_id|title                     |revenue   |
++--------+--------------------------+----------+
+|19995   |Avatar                    |2787965087|
+|597     |Titanic                   |1845034188|
+|24428   |The Avengers              |1519557910|
+|135397  |Jurassic World            |1513528810|
+|168259  |Furious 7                 |1506249360|
+|99861   |Avengers: Age of Ultron   |1405403694|
+|109445  |Frozen                    |1274219009|
+|68721   |Iron Man 3                |1215439994|
+|211672  |Minions                   |1156730962|
+|271110  |Captain America: Civil War|1153304495|
++--------+--------------------------+----------+
+
+Most popular genres:
++---------------+-----------+
+|genre_name     |movie_count|
++---------------+-----------+
+|Drama          |2297       |
+|Comedy         |1722       |
+|Thriller       |1274       |
+|Action         |1154       |
+|Romance        |894        |
+|Adventure      |790        |
+|Crime          |696        |
+|Science Fiction|535        |
+|Horror         |519        |
+|Family         |513        |
++---------------+-----------+
+only showing top 10 rows
+
+Top directors by total revenue:
++-----------------+-------------+-----------+
+|person_name      |total_revenue|movie_count|
++-----------------+-------------+-----------+
+|Steven Spielberg |9147393164   |27         |
+|Peter Jackson    |6498642820   |9          |
+|James Cameron    |5883569439   |7          |
+|Michael Bay      |5832524638   |12         |
+|Christopher Nolan|4227483234   |8          |
+|Chris Columbus   |3725631503   |11         |
+|Robert Zemeckis  |3590622002   |13         |
+|George Lucas     |3339113893   |5          |
+|Tim Burton       |3337418241   |14         |
+|Ridley Scott     |3189557997   |16         |
++-----------------+-------------+-----------+
+only showing top 10 rows
+
+Average rating per genre:
++-----------+------------------+
+|genre_name |avg_rating        |
++-----------+------------------+
+|History    |6.7197969543147185|
+|War        |6.713888888888889 |
+|Drama      |6.388196864111485 |
+|Music      |6.355675675675674 |
+|Foreign    |6.352941176470588 |
+|Animation  |6.341452991452987 |
+|Crime      |6.274137931034488 |
+|Documentary|6.238181818181816 |
+|Romance    |6.207718120805376 |
+|Mystery    |6.183908045977014 |
++-----------+------------------+
+only showing top 10 rows
+
+ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY
+spark@6e2c781cf53a:/opt/spark/work-dir$ 

@@ -1,64 +1,72 @@
+#version: "3.9"
 services:
+
   minio:
     image: minio/minio:latest
     container_name: minio
+    env_file:
+      - .env
+    command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
-    env_file: .env
-    command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
-  # Service renamed to 'spark' to fix the 'depends_on' error
-  # spark:
-  #   image: apache/spark:4.1.0-preview4-scala2.13-java21-python3-r-ubuntu
-  #   container_name: spark
-  #   env_file: .env
-  #   # A 'tail -f /dev/null' keeps the container running so airflow can interact with it
-  #   command: [ "tail", "-f", "/dev/null" ]
-  #   volumes:
-  #     - ./spark:/opt/spark-apps
-  #   depends_on:
-  #     - minio
 
   spark:
     image: apache/spark:3.5.1-scala2.12-java17-python3-ubuntu
     container_name: spark
-    env_file: .env
+    env_file:
+      - .env
     command: [ "tail", "-f", "/dev/null" ]
     volumes:
       - ./spark:/opt/spark-apps
     depends_on:
       - minio
 
+  postgres:
+    image: postgres:15
+    container_name: airflow-postgres
+    env_file:
+      - .env
+    volumes:
+      - airflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 5s
+      retries: 5
+
   airflow:
-    image: apache/airflow:3.1.5
+    image: apache/airflow:2.9.0
     container_name: airflow
-    env_file: .env
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      spark:
+        condition: service_started
+
+    ports:
+      - "8081:8080"
+
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./spark:/opt/spark-apps
-    ports:
-      - "8081:8080"
-    # Recommended user setting for volume permissions
-    user: "${AIRFLOW_UID:-50000}:0"
-    # Install amazon providers within the container start-up script
+
     command: >
-      bash -c "pip install apache-airflow-providers-amazon && 
-               airflow db init && 
-               airflow users create
-                --username admin
-                --password admin
-                --firstname admin
-                --lastname admin
-                --role Admin
-                --email admin@example.com &&
-               airflow scheduler & 
-               airflow webserver "
-    depends_on:
-      - minio
-      # This now correctly references the 'spark' service definition above
-      - spark
+      bash -c " airflow db migrate && airflow users create
+        --username admin
+        --password admin
+        --firstname admin
+        --lastname admin
+        --role Admin
+        --email admin@example.com || true &&
+      airflow scheduler & airflow webserver "
 
 volumes:
   minio_data:
+  airflow_pgdata:

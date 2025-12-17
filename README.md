@@ -295,3 +295,25 @@ Average rating per genre:
 only showing top 10 rows
 ```
 ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY
+
+
+
+Airflow standalone (local setup)
+
+docker exec -it airflow bash
+airflow users list
+
+
+airflow users create \
+    --username admin \
+    --password admin \
+    --firstname Admin \
+    --lastname User \
+    --role Admin \
+    --email admin@example.com
+
+```sh
+id | username | email             | first_name | last_name | roles
+===+==========+===================+============+===========+======
+1  | admin    | admin@example.com | Admin      | User      | Admin
+```
