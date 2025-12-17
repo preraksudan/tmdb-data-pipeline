@@ -159,3 +159,129 @@ com.amazonaws:aws-java-sdk-bundle:1.12.262 \
   --conf spark.hadoop.fs.s3a.secret.key=minioadmin \
   --conf spark.hadoop.fs.s3a.path.style.access=true \
   /opt/spark-apps/jobs/analytics_queries.py
+
+Analytics Record Format
+
+## avg_rating_per_genre
+```json
+  {
+  "genre_name": "History",
+  "avg_rating": 6.7197969543147185
+  }
+```
+
+## genre_popularity
+```json
+{
+  "genre_name": "Drama",
+  "movie_count": 2297
+}
+```
+
+## tom_cruise_revenue
+```json
+{
+  "movie_id": 956,
+  "title": "Mission: Impossible III",
+  "revenue": 397850012
+}
+```
+
+## top_directors
+```json
+{
+"person_name": "Sam Raimi",
+"total_revenue": 3132901462,
+"movie_count": 11
+}
+```
+
+## top_revenue_movies
+```json
+{
+  "movie_id": 271110,
+  "title": "Captain America: Civil War",
+  "revenue": 1153304495
+}
+```
+
+```sh
++--------+------------------------------------+---------+
+|movie_id|title                               |revenue  |
++--------+------------------------------------+---------+
+|56292   |Mission: Impossible - Ghost Protocol|694713380|
+|177677  |Mission: Impossible - Rogue Nation  |682330139|
+|74      |War of the Worlds                   |591739379|
+|955     |Mission: Impossible II              |546388105|
+|954     |Mission: Impossible                 |457696359|
++--------+------------------------------------+---------+
+only showing top 5 rows
+
+Top 10 highest-grossing movies:
++--------+--------------------------+----------+
+|movie_id|title                     |revenue   |
++--------+--------------------------+----------+
+|19995   |Avatar                    |2787965087|
+|597     |Titanic                   |1845034188|
+|24428   |The Avengers              |1519557910|
+|135397  |Jurassic World            |1513528810|
+|168259  |Furious 7                 |1506249360|
+|99861   |Avengers: Age of Ultron   |1405403694|
+|109445  |Frozen                    |1274219009|
+|68721   |Iron Man 3                |1215439994|
+|211672  |Minions                   |1156730962|
+|271110  |Captain America: Civil War|1153304495|
++--------+--------------------------+----------+
+
+Most popular genres:
++---------------+-----------+
+|genre_name     |movie_count|
++---------------+-----------+
+|Drama          |2297       |
+|Comedy         |1722       |
+|Thriller       |1274       |
+|Action         |1154       |
+|Romance        |894        |
+|Adventure      |790        |
+|Crime          |696        |
+|Science Fiction|535        |
+|Horror         |519        |
+|Family         |513        |
++---------------+-----------+
+only showing top 10 rows
+
+Top directors by total revenue:
++-----------------+-------------+-----------+
+|person_name      |total_revenue|movie_count|
++-----------------+-------------+-----------+
+|Steven Spielberg |9147393164   |27         |
+|Peter Jackson    |6498642820   |9          |
+|James Cameron    |5883569439   |7          |
+|Michael Bay      |5832524638   |12         |
+|Christopher Nolan|4227483234   |8          |
+|Chris Columbus   |3725631503   |11         |
+|Robert Zemeckis  |3590622002   |13         |
+|George Lucas     |3339113893   |5          |
+|Tim Burton       |3337418241   |14         |
+|Ridley Scott     |3189557997   |16         |
++-----------------+-------------+-----------+
+only showing top 10 rows
+
+Average rating per genre:
++-----------+------------------+
+|genre_name |avg_rating        |
++-----------+------------------+
+|History    |6.7197969543147185|
+|War        |6.713888888888889 |
+|Drama      |6.388196864111485 |
+|Music      |6.355675675675674 |
+|Foreign    |6.352941176470588 |
+|Animation  |6.341452991452987 |
+|Crime      |6.274137931034488 |
+|Documentary|6.238181818181816 |
+|Romance    |6.207718120805376 |
+|Mystery    |6.183908045977014 |
++-----------+------------------+
+only showing top 10 rows
+
+ALL ANALYTICS QUERIES COMPLETED SUCCESSFULLY
